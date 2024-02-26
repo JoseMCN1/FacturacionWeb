@@ -1,0 +1,91 @@
+﻿@*
+    Degine Model
+*@
+
+@model IEnumerable<Articulo>
+@*
+Define ViewData*@
+@*
+Write code*@
+@{
+
+    ViewData["Title"] = "Lista de Articulos";
+}
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="mb-3">
+            <a class="btn btn-success" data-bs-toggle="modal" data-bs-target="#agregarModal"><i class="bi bi-plus"></i> Agregar</a>
+        </div>
+
+        <!-- Rest of your table code -->
+
+        <!-- Modal for Agregar -->
+        <div class="modal fade" id="agregarModal" tabindex="-1" aria-labelledby="agregarModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="agregarModalLabel">Agregar Artículo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p role="alert" id="ErrorMessage" class="text-danger"></p>
+                        <!-- Add your form fields for adding an article here -->
+                        <!-- Example: -->
+                        <form id="agregarForm">
+                    <div class="mb-3">
+                        <label for="codigo" class="form-label">Código</label>
+                        <input type="text" class="form-control" id="Codigo" name=@Html.DisplayNameFor(model => model.Codigo) required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre</label>
+                        <input type="text" class="form-control" id="Nombre" name=@Html.DisplayNameFor(model => model.Nombre) required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="precio" class="form-label">Precio</label>
+                        <input type="text" class="form-control" id="Precio" name=@Html.DisplayNameFor(model => model.Precio) required>
+                    </div>
+                    <!-- Add more fields as needed -->
+
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <table class="table">
+
+            <thead>
+                <tr>
+                    @*<th>@Html.DisplayNameFor(model => model.ProfilePictureURL)</th>*@
+                    <th>@Html.DisplayNameFor(model => model.Codigo)</th>
+                    <th>@Html.DisplayNameFor(model => model.Nombre)</th>
+                     <th>@Html.DisplayNameFor(model => model.Precio)</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody id="myTableBodyArticulos">
+                
+            </tbody>
+            
+        </table>
+
+        <!-- Pagination HTML -->
+        <div id="pagination" class="pagination">
+            <button onclick="previousPage()">Previous</button>
+            <span id="currentPage">1</span>
+            <button onclick="nextPage()">Next</button>
+        </div>
+    </div>
+</div>
+
+
+
+
+
