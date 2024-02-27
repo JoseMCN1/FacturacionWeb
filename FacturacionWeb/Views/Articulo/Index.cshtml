@@ -16,13 +16,11 @@ Write code*@
     <div class="col-md-8 offset-md-2">
         <div class="row">
     <div class="col-md-8 offset-md-2">
-        <div class="mb-3">
+        <div class="row mb-4">
             <a class="btn btn-success" data-bs-toggle="modal" data-bs-target="#agregarModal"><i class="bi bi-plus"></i> Agregar</a>
         </div>
 
-        <!-- Rest of your table code -->
 
-        <!-- Modal for Agregar -->
         <div class="modal fade" id="agregarModal" tabindex="-1" aria-labelledby="agregarModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -32,8 +30,7 @@ Write code*@
                     </div>
                     <div class="modal-body">
                         <p role="alert" id="ErrorMessage" class="text-danger"></p>
-                        <!-- Add your form fields for adding an article here -->
-                        <!-- Example: -->
+
                         <form id="agregarForm">
                     <div class="mb-3">
                         <label for="codigo" class="form-label">Código</label>
@@ -47,18 +44,80 @@ Write code*@
                         <label for="precio" class="form-label">Precio</label>
                         <input type="text" class="form-control" id="Precio" name=@Html.DisplayNameFor(model => model.Precio) required>
                     </div>
-                    <!-- Add more fields as needed -->
-
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="AplicaIva" name="@Html.DisplayNameFor(model => model.AplicaIva)">
+                        <label class="form-check-label" for="AplicaIva">@Html.DisplayNameFor(model => model.AplicaIva)</label>
+                    </div>
                     <button type="submit" class="btn btn-primary">Guardar</button>
                 </form>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Modal for Actualizar -->
+        <div class="modal fade" id="actualizarModal" tabindex="-1" aria-labelledby="actualizarModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="actualizarModalLabel">Modificar Artículo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p role="alert" id="ErrorMessageUpdate" class="text-danger"></p>
+                        <!-- Add your form fields for updating an article here -->
+                        <!-- Example: -->
+                        <form id="modificarForm">
+                            <div class="mb-3">
+                                <label for="codigo" class="form-label">@Html.DisplayNameFor(model => model.Codigo)</label>
+                                <input type="hidden" class="form-control" id="inputIdActualizar" name="ActualizarId" required>
+                                <input type="text" class="form-control" id="inputCodigoActualizar" name="ActualizarCodigo" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="nombre" class="form-label">@Html.DisplayNameFor(model => model.Nombre)</label>
+                                <input type="text" class="form-control" id="inputNombreActualizar" name="ActualizarNombre" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="precio" class="form-label">@Html.DisplayNameFor(model => model.Precio)</label>
+                                <input type="text" class="form-control" id="inputPrecioActualizar" name="ActualizarPrecio" required>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="inputAplicaIvaActualizar" name="@Html.DisplayNameFor(model => model.AplicaIva)">
+                                <label class="form-check-label" for="inputAplicaIvaActualizar">@Html.DisplayNameFor(model => model.AplicaIva)</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+      </div>
+
+          <!-- Modal for Delete -->
+        <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel">Eliminar Artículo</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <input type="hidden" class="form-control" id="inputIdEliminar" name="inputIdEliminar" required>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro de que desea eliminar este artículo?</p>
+                        <p role="alert" id="ErrorMessageDelete" class="text-danger"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Eliminar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
-        <table class="table">
+        <div id="productTableContent" style="display: none;">
+            <table class="table">
 
             <thead>
                 <tr>
@@ -66,6 +125,8 @@ Write code*@
                     <th>@Html.DisplayNameFor(model => model.Codigo)</th>
                     <th>@Html.DisplayNameFor(model => model.Nombre)</th>
                      <th>@Html.DisplayNameFor(model => model.Precio)</th>
+                      <th>Iva</th>
+                      <th>Total</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -76,12 +137,16 @@ Write code*@
             
         </table>
 
-        <!-- Pagination HTML -->
-        <div id="pagination" class="pagination">
-            <button onclick="previousPage()">Previous</button>
-            <span id="currentPage">1</span>
-            <button onclick="nextPage()">Next</button>
+        <div class="text-center">
+            <div id="pagination" class="pagination d-flex justify-content-center mt-4">
+    <button class="btn btn-primary mr-2" onclick="previousPage()">Previous</button>
+        <span id="currentPage" class="align-self-center"> </span>
+    <button class="btn btn-primary ml-2" onclick="nextPage()">Next</button>
+</div>
+</div>
         </div>
+        </div>
+
     </div>
 </div>
 

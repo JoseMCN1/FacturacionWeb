@@ -22,10 +22,10 @@ namespace FacturacionWeb.Controllers
 
             try
             {
-                //if (jwtToken == null)
-                //{
-                //    return RedirectToAction("Index", "Home");
-                //}
+                if (jwtToken == null)
+                {
+                    return RedirectToAction("Index", "Home");
+                }
 
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
 
@@ -56,14 +56,16 @@ namespace FacturacionWeb.Controllers
 
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetArticulos(int page = 1, int itemsPerPage = 10)
+        public async Task<IActionResult> GetArticulos(int page = 1, int itemsPerPage = 10,string code = "")
         {
             string jwtToken = Request.Cookies["YourCookieName"];
 
             try
             {
-                HttpResponseMessage response = await _httpClient.GetAsync($"articulos?Page={page}&PageSize={itemsPerPage}");
+
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+
+                HttpResponseMessage response = await _httpClient.GetAsync($"articulos?Page={page}&PageSize={itemsPerPage}&Code={code}");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -88,12 +90,122 @@ namespace FacturacionWeb.Controllers
 
 
         [HttpPost]
+        public async Task<IActionResult> GetArticulo(int id)
+        {
+            string jwtToken = Request.Cookies["YourCookieName"];
+            try
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+
+
+                HttpResponseMessage response = await _httpClient.GetAsync($"articulos/{id}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return Ok(await response.Content.ReadAsAsync<Articulo>());
+                }
+                else if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+
+                return BadRequest();
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error getting {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = null;
+            }
+        }
+
+
+        [HttpPost]
+        public async Task<IActionResult> Update(Articulo articulo)
+        {
+            string jwtToken = Request.Cookies["YourCookieName"];
+            try
+            {
+
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+
+
+                HttpResponseMessage response = await _httpClient.PutAsJsonAsync($"articulos/{articulo?.Id}", articulo);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return Ok();
+                }
+                else if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+                else if (response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    ErrorResponse errorResponse = JsonConvert.DeserializeObject<ErrorResponse>(content);
+                    return BadRequest(errorResponse);
+
+                }
+
+                return BadRequest();
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error getting {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = null;
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Delete(int id)
+        {
+            string jwtToken = Request.Cookies["YourCookieName"];
+            try
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+
+                HttpResponseMessage response = await _httpClient.DeleteAsync($"articulos/{id}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return Ok();
+                }
+                else if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+
+                return BadRequest();
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"Error getting {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = null;
+            }
+        }
+
+       
+        [HttpPost]
         public  async Task<IActionResult> Create(Articulo newArticulo)
         {
             string jwtToken = Request.Cookies["YourCookieName"];
 
             try
             {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+
                 HttpResponseMessage response = await _httpClient.PostAsJsonAsync("articulos", newArticulo);
 
 

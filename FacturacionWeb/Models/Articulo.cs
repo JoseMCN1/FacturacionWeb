@@ -14,5 +14,8 @@ namespace FacturacionWeb.Models
 
         [Display(Name = "Precio")]
         public decimal Precio { get; set; }
+
+        [Display(Name = "Aplica Iva ( 13% )")]
+        public byte AplicaIva { get; set; }
     }
 }

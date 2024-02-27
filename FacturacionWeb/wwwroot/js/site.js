@@ -1,147 +1,269 @@
-﻿// Please see documentation at https://docs.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
-
-// Write your JavaScript code.
-
-function showError(id, message) {
-    $(id).text(message);
-}
-
-let currentPage = 1;
-let itemsPerPage = 10;
-let totalArticulos = 0;
-
-function previousPage() {
-    if (currentPage > 1) {
-        currentPage--;
-        getArticulos()
-        updatePagination();
-    }
-}
-
-
-function updatePagination() {
-
-    if (currentPage === 1) {
-        $('#pagination button:contains("Previous")').prop('disabled', true);
-    } else {
-        $('#pagination button:contains("Previous")').prop('disabled', false);
-    }
-
-    // Disable/enable "Next" button based on the current page
-    if (currentPage >= totalArticulos) {
-        $('#pagination button:contains("Next")').prop('disabled', true);
-    } else {
-        $('#pagination button:contains("Next")').prop('disabled', false);
-    }
-}
-
-
-// Function to change to the next page
-function nextPage() {
-    console.log("sss")
-    console.warn({ totalArticulos, currentPage, itemsPerPage })
-    if (currentPage < totalArticulos) {
-        currentPage++;
-        getArticulos()
-        updatePagination();
-    }
-}
-
-
-function fillTableBody(data) {
-    var tableBody = $("#myTableBodyArticulos");
-
-    // Clear existing rows
-    tableBody.empty();
-
-    const articulos = data.articulos;
-
-    // Iterate through the data and append rows to the tbody
-    $.each(articulos, function (index, item) {
-        var row = '<tr>' +
-            '<td class="align-middle">' + item.codigo + '</td>' +
-            '<td class="align-middle">' + item.nombre + '</td>' +
-            '<td class="align-middle">' + item.precio + '</td>' +
-            '<td class="align-middle">' +
-            '<a class="btn btn-outline-primary"><i class="bg-info bi-pencil-square"></i> Edit</a>' +
-            '<a class="btn btn-outline-danger"><i class="bg-info bi-pencil-trash"></i> Delete</a>' +
-            '</td>' +
-            '</tr>';
-
-        tableBody.append(row);
-    });
-}
-
-function getArticulos() {
+﻿
+function buscarArticulo(codigo,cantidad) {
     $.ajax({
-        url: "/Articulo/GetArticulos?page=" + currentPage + "&itemsPerPage=" + itemsPerPage,
+        url: "/Articulo/GetArticulos?code=" + codigo,
         type: "GET",
         success: function (articulosData) {
-            // Update the table or perform any other necessary actions with the new data
-            console.warn({ articulosData})
-            currentPage = articulosData.currentPage;
-            itemsPerPage = articulosData.itemsPerPage;
-            totalArticulos = articulosData.total;
-            fillTableBody(articulosData);
+            console.warn({ articulosData })
+            if (articulosData.articulos && articulosData.articulos.length > 0) {
+                agregarFilaArticulo(articulosData.articulos[0], cantidad);
+            }
         },
         error: function (xhr, status, error) {
-            // Handle errors in the GetArticulos method if needed
             console.error("Error fetching Articulos:", xhr.status, xhr.statusText);
         }
     });
 }
 
-// Define a function to handle success and call GetArticulos
-function handleCreateSuccess(data) {
-    console.warn(data);
-    // Handle success (e.g., close the modal, refresh the table)
-    $("#agregarModal").modal("hide");
-
-    getArticulos();
+function cleanFields() {
+     $('#nombre').val("");
+     $('#codigo').val("");
+    $('#cantidad').val("");
+    $('#btnAgregarArticulo').prop('disabled', true);
 }
 
-// Define a function to handle errors
-function handleCreateError(xhr, status, error) {
+function checkToAddArticle() {
+    var cantidadInput = $('#cantidad');
+    cantidadInput.val(cantidadInput.val().replace(/\D/g, ''));
+
+    let nombre = $('#nombre').val();
+    let codigo = $('#codigo').val();
+    let cantidad = $('#cantidad').val();
+
+    if (cantidad && codigo && nombre) {
+        if (parseInt(cantidad) > 0) {
+            $('#btnAgregarArticulo').prop('disabled', false);
+        } else {
+            $('#btnAgregarArticulo').prop('disabled', true);
+        }
+    } else {
+        $('#btnAgregarArticulo').prop('disabled', true);
+    }
+}
+
+
+function agregarFilaArticulo(articulo, cantidad) {
+    // Check if the article is already present in the table
+    const existingRow = $("#myTableBodyFacturacion tr").filter(function () {
+        return $(this).find("td:first").text() === articulo.codigo;
+    });
+
+    if (existingRow.length > 0) {
+        // Article already exists, you can handle this situation as needed
+        alert("Este artículo ya ha sido agregado.");
+        return;
+    }
+
+    let precio = parseFloat(articulo.precio);
+    let ivaMonto = 0;
+    let total = 0;
+
+    if (articulo.aplicaIva === 1) {
+
+        ivaMonto = calculateIVA(precio*cantidad);
+
+        total = calculateTotal(precio*cantidad, ivaMonto);
+    } else {
+
+        total = precio * cantidad;
+    }
+
+    const newRow = `<tr data-id="${articulo.id}" data-iva="${articulo.aplicaIva}" data-precio="${precio}" data-cantidad="${cantidad}" data-total="${total}">
+            <td>${articulo.codigo}</td>
+            <td>${articulo.nombre}</td>
+            <td>${formatCurrency(precio)}</td>
+            <td>${formatCurrency(ivaMonto)}</td>
+            <td>${cantidad}</td>
+            <td>${formatCurrency(total)}</td>
+        </tr>`;
+
+    $("#myTableBodyFacturacion").append(newRow);
+    calcularTotal();
+    cleanFields();
+}
+
+function calcularTotal() {
+    let total = 0;
+
+    $("#myTableBodyFacturacion tr").each(function () {
+        let colum = $(this).find("td:eq(5)").text();
+        let rowTotal = parseFloat(colum);
+        console.warn({ colum, rowTotal })
+        if (colum) {
+            total += rowTotal;
+        }
+    });
+
+    const totalRow = `<tr class="total-row">
+            <td colspan="5" class="text-right"></td>
+            <td>${formatCurrency(total)}</td>
+        </tr>`;
+
+    $("#myTableBodyFacturacion tr.total-row").remove();
+    $("#myTableBodyFacturacion").append(totalRow);
+}
+
+let timeoutId;
+
+function delayedAjaxCall() {
+    clearTimeout(timeoutId);
+
+    timeoutId = setTimeout(function () {
+        let codigoValue = document.getElementById('codigo').value;
+
+        $.ajax({
+            url: "/Articulo/GetArticulos?code=" + codigoValue,
+            type: "GET",
+            success: function (articulosData) {
+                console.warn({ articulosData })
+                if (articulosData.articulos && articulosData.articulos.length > 0) {
+                    let articulo = articulosData.articulos[0];
+                    $('#nombre').val(articulo?.nombre);
+                } else {
+                    $('#nombre').val("");
+                    $('#btnAgregarArticulo').prop('disabled', true);
+                }
+            },
+            error: function (xhr, status, error) {
+                $('#nombre').val("");
+                console.error("Error fetching Articulos:", xhr.status, xhr.statusText);
+            }
+        });
+
+    }, 2000);
+}
+
+
+function showBillingInformation(facturaId) {
+    $.ajax({
+        url: "/facturacion/GetFactura",
+        type: "POST",
+        data: {
+            id: facturaId
+        },
+        success: function (factura) {
+            fillModal(factura)
+        },
+        error: function (xhr, status, error) {
+            console.error("Error fetching Article:", xhr.status, xhr.statusText);
+        }
+    });
+}
+
+function fillModal(data) {
+    $("#consecutivo").text(data.consecutivo);
+    $("#numeroFactura").text(data.numeroFactura);
+    $("#vendedorId").text(data.vendedorId);
+    $("#fechaCreacion").text(new Date(data.fechaCreacion).toLocaleString());
+    $("#subtotal").text(data.subtotal.toFixed(2));
+    $("#montoTotal").text(data.montoTotal.toFixed(2));
+
+    const $articulosTableBody = $("#articulosTableBody").empty();
+
+    data.articuloFacturas.forEach(function (articulo) {
+        $articulosTableBody.append(`
+                <tr>
+                    <td>${articulo.codigo}</td>
+                    <td>${articulo.cantidad}</td>
+                    <td>${articulo.precioUnitario.toFixed(2)}</td>
+                    <td>${articulo.aplicaIva === 1 ? "Sí" : "No"}</td>
+                    <td>${articulo.montoTotal.toFixed(2)}</td>
+                </tr>
+            `);
+    });
+
+    $('#modalFactura').modal('show');
+}
+
+function handleCreatePOSSuccess(data) {
+    if (data && data?.id > 0) {
+        $("#myTableBodyFacturacion").empty();
+        showBillingInformation(data?.id);
+    }
+   
+}
+
+
+function handleCreatePOSError(xhr, status, error) {
     const errorResponse = xhr.responseJSON;
 
     console.warn({ xhr, status, error, errorResponse })
     if (xhr.status === 400 || xhr.status === 500) {
-        // Bad Request or Internal Server Error
-        console.error("Error:", errorResponse?.mensaje);
-        showError("#ErrorMessage", errorResponse?.mensaje);
+        alert(errorResponse?.mensaje);
     } else {
-        // Handle other statuses if needed
-        console.error("Error:", xhr.status, xhr.statusText);
-        showError("#ErrorMessage", "Internal Server Error");
+        alert(errorResponse?.mensaje);
     }
 }
 
-// Use a named function for clarity
-function createArticulo(formData) {
+
+function createPOS(formData) {
+    console.warn({ formData })
     $.ajax({
-        url: "/Articulo/Create",
+        url: "/facturacion/Create",
         type: "POST",
         data: formData,
-        success: handleCreateSuccess,
-        error: handleCreateError
+        success: handleCreatePOSSuccess,
+        error: handleCreatePOSError
     });
 }
 
-
 $(document).ready(function () {
 
-    getArticulos();
+    $("#btnAgregarArticulo").click(function () {
+        const codigo = $("#codigo").val();
+        let cantidad = $("#cantidad").val();
+        if (codigo && codigo.length > 0 && parseInt(cantidad) > 0) {
+            buscarArticulo(codigo,cantidad)
+        }
+    });
 
-    // Attach an event listener to the form submission
-    $("#agregarForm").submit(function (event) {
-        // Prevent the default form submission
-        event.preventDefault();
-        showError("#ErrorMessage", "");
-        // Get form data
-        var formData = $(this).serialize();
+    $("#btnImprimir").click(function () {
+        //showBillingInformation(1)
+        //return;
+        const allRows = $("#myTableBodyFacturacion tr");
+        let montoTotalFactura = 0;
+        let subTotalFactura = 0;
+        let articulos = [];
 
-        // Call the createArticulo function with the form data
-        createArticulo(formData);
+        allRows.each(function () {
+            const id = $(this).data("id");
+            let precio = $(this).data("precio");
+            let cantidad = $(this).data("cantidad");
+            let total = $(this).data("total");
+            let aplicaIVA = $(this).data("iva");
+            let ivaMonto = 0;
+           
+            if (aplicaIVA == 1) {
+                ivaMonto = calculateIVA(precio * cantidad);
+            }
+
+            if (id) {
+                articulos.push({
+                    idArticulo: id,
+                    montoTotal: total,
+                    cantidad: cantidad,
+                    precioUnitario: precio,
+                    aplicaIva: aplicaIVA,
+                })
+
+                subTotalFactura += (precio * cantidad)
+                montoTotalFactura += total;
+
+            }
+
+          
+        });
+
+        console.warn({ subTotalFactura, montoTotalFactura, articulos });
+
+        if (subTotalFactura && montoTotalFactura && articulos.length > 0) {
+            const posRequest  = {
+                MontoTotal: montoTotalFactura,
+                SubTotal: subTotalFactura,
+                Articulos: articulos
+            };
+            createPOS(posRequest);
+        }
+
     });
 });
